@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import ttk
 from tkinter import messagebox
 from PIL import Image, ImageTk
 import csv
@@ -32,31 +33,38 @@ class KataScoringApp(tk.Frame):
         bg_image = Image.open(bg_path).resize((360, 640))
         self.bg_photo = ImageTk.PhotoImage(bg_image)
 
-        # Buat canvas dulu!
         self.canvas = tk.Canvas(self, width=360, height=640)
         self.canvas.pack(fill="both", expand=True)
-
-        # Baru gambar background ke canvas
         self.canvas.create_image(0, 0, anchor="nw", image=self.bg_photo)
 
-        # Rectangle background AO (biru) dan AKA (merah)
         self.canvas.create_rectangle(10, 150, 175, 450, fill="blue", outline="")
         self.canvas.create_rectangle(185, 150, 350, 450, fill="red", outline="")
 
-        # Division & Judges
         self.canvas.create_text(20, 120, text="Division:", fill="white", font=("Inter", 10, "bold"), anchor="w")
         self.canvas.create_text(250, 120, text="Judges:", fill="white", font=("Inter", 10, "bold"), anchor="w")
         self.division_entry = self._create_entry(145, 120, 22)
         self.judges_entry = self._create_entry(318, 120, 5)
 
-        # AO & AKA label dan entry
+        # AO & AKA dropdown for kata selection
         self.canvas.create_text(30, 180, text="Ao:", fill="white", font=("Inter", 10, "bold"), anchor="w")
-        self.ao_name = self._create_entry(100, 180, 15)
+        self.ao_kata = ttk.Combobox(self.master, values=[
+            "Kanku Sho", "Kanku Dai", "Bassai Dai", "Bassai Sho", 
+            "Jion", "Empi", "Hangetsu", "Gankaku", 
+            "Tekki Shodan", "Tekki Nidan", "Tekki Sandan"
+        ], width=10, state="readonly")
+        self.ao_kata.set("Pilih Kata")
+        self.canvas.create_window(100, 180, window=self.ao_kata)
+        
         self.canvas.create_text(210, 180, text="Aka:", fill="white", font=("Inter", 10, "bold"), anchor="w")
-        self.aka_name = self._create_entry(287, 180, 15)
+        self.aka_kata = ttk.Combobox(self.master, values=[
+            "Kanku Sho", "Kanku Dai", "Bassai Dai", "Bassai Sho", 
+            "Jion", "Empi", "Hangetsu", "Gankaku", 
+            "Tekki Shodan", "Tekki Nidan", "Tekki Sandan"
+        ], width=10, state="readonly")
+        self.aka_kata.set("Pilih Kata")
+        self.canvas.create_window(287, 180, window=self.aka_kata)
 
-        # Score label di atas rectangle
-        self.ao_score_label = self._create_label("0",125, 233, size=36, color="white", bg="blue")
+        self.ao_score_label = self._create_label("0", 125, 233, size=36, color="white", bg="blue")
         self.aka_score_label = self._create_label("0", 300, 233, size=36, color="white", bg="red")
 
         self.ao_timer_label = tk.Label(self.master, text="0:00", font=("Inter", 12, "bold"), fg="white", bg="navy")
@@ -84,7 +92,6 @@ class KataScoringApp(tk.Frame):
 
         self.back_btn = self._create_button("BACK", self.go_back, 180, 540, bg="navy", fg="white")
 
-        # Gambar BIRU dan MERAH
         current_dir = os.path.dirname(os.path.abspath(__file__))
         biru_img_path = os.path.join(current_dir, "assets", "BLUE.png")
         merah_img_path = os.path.join(current_dir, "assets", "RED.png")
@@ -92,7 +99,6 @@ class KataScoringApp(tk.Frame):
         self.biru_photo = ImageTk.PhotoImage(Image.open(biru_img_path))
         self.merah_photo = ImageTk.PhotoImage(Image.open(merah_img_path))
 
-        # Tempatkan gambar di canvas (atur posisi sesuai kebutuhan)
         self.canvas.create_image(65, 233, image=self.biru_photo, anchor="center")
         self.canvas.create_image(240, 233, image=self.merah_photo, anchor="center")
 
@@ -126,12 +132,18 @@ class KataScoringApp(tk.Frame):
         messagebox.showinfo("Kiken", f"Pemain {side.upper()} telah mengundurkan diri")
 
     def start_ao_timer(self):
+        if self.ao_kata.get() == "Pilih Kata":
+            messagebox.showwarning("Peringatan", "Silakan pilih kata untuk Ao terlebih dahulu")
+            return
         self.ao_started = True
         self.aka_running = False
         self.ao_running = True
         self.ao_start_time = time.time() - self.ao_time
 
     def start_aka_timer(self):
+        if self.aka_kata.get() == "Pilih Kata":
+            messagebox.showwarning("Peringatan", "Silakan pilih kata untuk Aka terlebih dahulu")
+            return
         self.aka_started = True
         self.ao_running = False
         self.aka_running = True
@@ -155,9 +167,7 @@ class KataScoringApp(tk.Frame):
         self.canvas.itemconfigure(self.ao_timer_label_id, state=state)
         self.canvas.itemconfigure(self.aka_timer_label_id, state=state)
 
-
     def save_scores(self):
-        # Hentikan stopwatch AO & AKA
         self.ao_running = False
         self.aka_running = False
 
@@ -167,15 +177,12 @@ class KataScoringApp(tk.Frame):
 
         rows = []
         if self.ao_started and not self.aka_started:
-            # Hanya AO yang jalan
-            rows.append([division, "AO", self.ao_score, int(self.ao_time)])
+            rows.append([division, "AO", self.ao_kata.get(), self.ao_score, int(self.ao_time)])
         elif self.aka_started and not self.ao_started:
-            # Hanya AKA yang jalan
-            rows.append([division, "AKA", self.aka_score, int(self.aka_time)])
+            rows.append([division, "AKA", self.aka_kata.get(), self.aka_score, int(self.aka_time)])
         elif self.ao_started and self.aka_started:
-            # Keduanya jalan, simpan dua baris
-            rows.append([division, "AO", self.ao_score, int(self.ao_time)])
-            rows.append([division, "AKA", self.aka_score, int(self.aka_time)])
+            rows.append([division, "AO", self.ao_kata.get(), self.ao_score, int(self.ao_time)])
+            rows.append([division, "AKA", self.aka_kata.get(), self.aka_score, int(self.aka_time)])
         else:
             messagebox.showwarning("Peringatan", "Belum ada pertandingan yang dimulai.")
             return
@@ -183,7 +190,7 @@ class KataScoringApp(tk.Frame):
         with open(file_path, "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             if not file_exists:
-                writer.writerow(["Division", "Side", "Score", "Time"])
+                writer.writerow(["Division", "Side", "Kata", "Score", "Time"])
             for row in rows:
                 writer.writerow(row)
         messagebox.showinfo("Simpan", "Data telah disimpan.")
@@ -195,10 +202,14 @@ class KataScoringApp(tk.Frame):
         self.aka_time = 0
         self.ao_running = False
         self.aka_running = False
+        self.ao_started = False
+        self.aka_started = False
         self.ao_score_label.config(text="0")
         self.aka_score_label.config(text="0")
         self.ao_timer_label.config(text="0:00")
         self.aka_timer_label.config(text="0:00")
+        self.ao_kata.set("Pilih Kata")
+        self.aka_kata.set("Pilih Kata")
 
     def go_back(self):
         self.master.destroy()
@@ -212,4 +223,7 @@ def open_third_page(parent=None):
     app.pack(fill="both", expand=True)
     window.geometry("360x640")
     window.resizable(False, False)
-    # Jika ada gambar di window, simpan referensinya:
+    window.mainloop()
+
+if __name__ == "__main__":
+    open_third_page()
